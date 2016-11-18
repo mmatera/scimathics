@@ -46,9 +46,9 @@ matrix:
 before_install:
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
+  - echo $PWD 
   - sudo apt-get update -qq &&
   - pip install numpy scipy matplotlib &&
-  - echo $PWD &&
   - cd /tmp; git clone git@github.com:mmatera/Mathics.git; cd Mathics; python setup.py install &&
   - echo $PWD &&
   - if [[ "$DOC" == "true" ]]; then
