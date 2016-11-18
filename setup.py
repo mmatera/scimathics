@@ -1,40 +1,50 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import print_function
+from __future__ import absolute_import
+
 """Setuptools based setup script for Mathics.
+
 For the easiest installation just type the following command (you'll probably
 need root privileges):
+
     python setup.py install
+
 This will install the library in the default location. For instructions on
 how to customize the install procedure read the output of:
+
     python setup.py --help install
+
 In addition, there are some other commands:
+
     python setup.py clean -> will clean all trash (*.pyc and stuff)
+
 To get a full list of avaiable commands, read the output of:
+
     python setup.py --help-commands
-Or, if all else fails, feel free to write to the sympy list at
+
+Or, if all else fails, feel free to write to the mathics users list at
 mathics-users@googlegroups.com and ask for help.
 """
 
 import sys
+import platform
+import os
 from setuptools import setup, Command, Extension
 
-
-
-
-
-
 # Ensure user has the correct Python version
-if sys.version_info[:2] != (2, 7):
-    print("Mathics supports Python 2.7. \
-Python %d.%d detected" % sys.version_info[:2])
+if sys.version_info[:2] != (2, 7) and sys.version_info < (3, 2):
+    print("Mathics does not support Python %d.%d" % sys.version_info[:2])
     sys.exit(-1)
 
 # stores __version__ in the current namespace
-execfile('mathics/version.py')
+exec(compile(open('mathics/version.py').read(), 'mathics/version.py', 'exec'))
 
-if sys.subversion[0] == 'PyPy':
-    is_PyPy = True
-else:
-    is_PyPy = False
+is_PyPy = (platform.python_implementation() == 'PyPy')
+
+INSTALL_REQUIRES = []
+DEPENDENCY_LINKS = []
 
 try:
     if is_PyPy:
@@ -43,7 +53,6 @@ try:
 except ImportError:
     EXTENSIONS = []
     CMDCLASS = {}
-    INSTALL_REQUIRES = []
 else:
     EXTENSIONS = {
         'core': ['expression', 'numbers', 'rules', 'pattern'],
@@ -52,17 +61,12 @@ else:
     EXTENSIONS = [
         Extension('mathics.%s.%s' % (parent, module),
                   ['mathics/%s/%s.py' % (parent, module)])
-        for parent, modules in EXTENSIONS.iteritems() for module in modules]
+        for parent, modules in EXTENSIONS.items() for module in modules]
     CMDCLASS = {'build_ext': build_ext}
-    INSTALL_REQUIRES = ['cython>=0.15.1']
+    INSTALL_REQUIRES += ['cython>=0.15.1']
 
 # General Requirements
-INSTALL_REQUIRES += ['sympy==0.7.6', 'scipy>=0.14' 'ply>=3.8',
-                     'mpmath>=0.19', 'python-dateutil', 'colorama',
-                     'interruptingcow']
-
-# if sys.platform == "darwin":
-#    INSTALL_REQUIRES += ['readline']
+INSTALL_REQUIRES += ['mathics>=1.0']
 
 
 def subdirs(root, file='*.*', depth=10):
@@ -72,10 +76,10 @@ def subdirs(root, file='*.*', depth=10):
 
 class initialize(Command):
     """
-    Manually creates the database used by Django
+    Manually create the Django database used by the web notebook
     """
 
-    description = "manually create the database used by django"
+    description = "manually create the Django database used by the web notebook"
     user_options = []  # distutils complains if this is not here.
 
     def __init__(self, *args):
@@ -89,16 +93,32 @@ class initialize(Command):
         pass
 
     def run(self):
-        print "run"
-        
+        import os
+        import subprocess
+        settings = {}
+        exec(compile(open('mathics/settings.py').read(), 'mathics/settings.py', 'exec'), settings)
+
+        database_file = settings['DATABASES']['default']['NAME']
+        print("Creating data directory %s" % settings['DATA_DIR'])
+        if not os.path.exists(settings['DATA_DIR']):
+            os.makedirs(settings['DATA_DIR'])
+        print("Creating database %s" % database_file)
+        try:
+            subprocess.check_call(
+                [sys.executable, 'mathics/manage.py', 'migrate', '--noinput'])
+            print("")
+            print("Database created successfully.")
+        except subprocess.CalledProcessError:
+            print("Error: failed to create database")
+            sys.exit(1)
 
 
 class test(Command):
     """
-    Runs the unittests
+    Run the unittests
     """
 
-    description = "runs the unittests"
+    description = "run the unittests"
     user_options = []
 
     def __init__(self, *args):
@@ -112,12 +132,23 @@ class test(Command):
         pass
 
     def run(self):
-        print "test"
+        import unittest
+        test_loader = unittest.defaultTestLoader
+        test_runner = unittest.TextTestRunner(verbosity=3)
+        test_suite = test_loader.discover('test/')
+        test_result = test_runner.run(test_suite)
+
+        if not test_result.wasSuccessful():
+            sys.exit(1)
+
 
 CMDCLASS['initialize'] = initialize
 CMDCLASS['test'] = test
+
+
+
 setup(
-    name="Mathics",
+    name="SciMathics",
     cmdclass=CMDCLASS,
     ext_modules=EXTENSIONS,
     version=__version__,
@@ -127,27 +158,36 @@ setup(
     ],
 
     install_requires=INSTALL_REQUIRES,
+    dependency_links=DEPENDENCY_LINKS,
 
-    package_data={},
 
-    entry_points={
-        'console_scripts': [
-            'mathics = mathics.main:main',
-            'mathicsserver = mathics.server:main',
-        ],
-    },
-
-    # don't pack Mathics in egg because of sqlite database, media files, etc.
+    # don't pack Mathics in egg because of media files, etc.
     zip_safe=False,
 
     # metadata for upload to PyPI
     author="Mauricio Matera",
-    author_email="mauricio.matera@gmail.com",
-    description="Support of numerical linear algebra routines for mathics.",
+    author_email="matera@fisica.unlp.edu.ar",
+    description="Scipy support for mathics.",
     license="GPL",
-    keywords="computer algebra system mathics mathematica scipy linear algebra",
-    url="http://www.mathics.org/",   # project home page, if any
-
-    # TODO: could also include long_description, download_url, classifiers,
-    # etc.
+    url="https://mathics.github.io/",
+    download_url="https://github.com/mmatera/scimathics",
+    keywords=['Mathematica', 'Wolfram', 'Interpreter', 'Shell', 'Math', 'CAS', 'Scipy'],
+    classifiers=[
+        'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.2',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: Implementation :: CPython',
+        'Programming Language :: Python :: Implementation :: PyPy',
+        'Topic :: Scientific/Engineering',
+        'Topic :: Scientific/Engineering :: Mathematics',
+        'Topic :: Scientific/Engineering :: Physics',
+        'Topic :: Software Development :: Interpreters',
+    ],
+    # TODO: could also include long_description, download_url,
 )
