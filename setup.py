@@ -34,17 +34,19 @@ import os
 from setuptools import setup, Command, Extension
 
 # Ensure user has the correct Python version
-if sys.version_info[:2] != (2, 7) and sys.version_info < (3, 2):
-    print("Mathics does not support Python %d.%d" % sys.version_info[:2])
-    sys.exit(-1)
+#if sys.version_info[:2] != (2, 7) and sys.version_info < (3, 2):
+#    print("Mathics does not support Python %d.%d" % sys.version_info[:2])
+#    sys.exit(-1)
 
 # stores __version__ in the current namespace
-exec(compile(open('mathics/version.py').read(), 'mathics/version.py', 'exec'))
+#exec(compile(open('mathics/version.py').read(), 'mathics/version.py', 'exec'))
 
 is_PyPy = (platform.python_implementation() == 'PyPy')
 
 INSTALL_REQUIRES = []
 DEPENDENCY_LINKS = []
+
+__version__ = [0,0,0]
 
 try:
     if is_PyPy:
@@ -72,45 +74,6 @@ INSTALL_REQUIRES += ['mathics>=1.0']
 def subdirs(root, file='*.*', depth=10):
     for k in range(depth):
         yield root + '*/' * k + file
-
-
-class initialize(Command):
-    """
-    Manually create the Django database used by the web notebook
-    """
-
-    description = "manually create the Django database used by the web notebook"
-    user_options = []  # distutils complains if this is not here.
-
-    def __init__(self, *args):
-        self.args = args[0]  # so we can pass it to other classes
-        Command.__init__(self, *args)
-
-    def initialize_options(self):  # distutils wants this
-        pass
-
-    def finalize_options(self):    # this too
-        pass
-
-    def run(self):
-        import os
-        import subprocess
-        settings = {}
-        exec(compile(open('mathics/settings.py').read(), 'mathics/settings.py', 'exec'), settings)
-
-        database_file = settings['DATABASES']['default']['NAME']
-        print("Creating data directory %s" % settings['DATA_DIR'])
-        if not os.path.exists(settings['DATA_DIR']):
-            os.makedirs(settings['DATA_DIR'])
-        print("Creating database %s" % database_file)
-        try:
-            subprocess.check_call(
-                [sys.executable, 'mathics/manage.py', 'migrate', '--noinput'])
-            print("")
-            print("Database created successfully.")
-        except subprocess.CalledProcessError:
-            print("Error: failed to create database")
-            sys.exit(1)
 
 
 class test(Command):
@@ -142,7 +105,6 @@ class test(Command):
             sys.exit(1)
 
 
-CMDCLASS['initialize'] = initialize
 CMDCLASS['test'] = test
 
 
