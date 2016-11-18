@@ -48,11 +48,11 @@ before_install:
   - "sh -e /etc/init.d/xvfb start"
   - echo "build.sh"
   - cat /home/travis/build.sh 
-  - export CURRDIR = $PWD
-  - sudo apt-get update -qq &&
+  - export CURRDIR = "$PWD"
+  - sudo apt-get update  &&
   - pip install numpy scipy matplotlib &&
   - cd /tmp; git clone git@github.com:mmatera/Mathics.git; cd Mathics; python setup.py install; cd $CURRDIR &&
-  - echo $PWD
+  - echo "$PWD"
   - if [[ "$DOC" == "true" ]]; then
       sudo apt-get update -qq &&
       sudo apt-get install -qq asymptote imagemagick texlive-latex-extra texlive-latex3 texlive-fonts-recommended latexmk;
