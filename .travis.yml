@@ -47,8 +47,8 @@ before_install:
   - "export DISPLAY=:99.0"
   - "sh -e /etc/init.d/xvfb start"
   - echo "build.sh"
-  - CURRDIR = $PWD
   - cat /home/travis/build.sh 
+  - export CURRDIR = $PWD
   - sudo apt-get update -qq &&
   - pip install numpy scipy matplotlib &&
   - cd /tmp; git clone git@github.com:mmatera/Mathics.git; cd Mathics; python setup.py install; cd $CURRDIR &&
